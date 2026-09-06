@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Todo</title>
+<style>
+  :root {
+    --bg: #F3F1EB;
+    --card: #FFFFFF;
+    --ink: #2B2E2A;
+    --muted: #7A7D74;
+    --line: #E4E1D7;
+    --accent: #4F6F52;
+    --accent-soft: #DCE7DC;
+    --done: #B7BBAF;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  body {
+    display: flex;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .app {
+    width: 100%;
+    max-width: 480px;
+    min-height: 100vh;
+    background: var(--card);
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    padding: 32px 24px 20px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  header h1 {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  header p {
+    margin: 6px 0 0;
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  form {
+    display: flex;
+    gap: 8px;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  input[type="text"] {
+    flex: 1;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 16px;
+    color: var(--ink);
+    outline: none;
+  }
+
+  input[type="text"]:focus {
+    border-color: var(--accent);
+  }
+
+  button.add {
+    border: none;
+    background: var(--accent);
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 0 20px;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+
+  button.add:active { transform: scale(0.97); }
+
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 8px 12px;
+    flex: 1;
+  }
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 12px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .check {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    flex-shrink: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+  }
+
+  .check.done {
+    background: var(--accent);
+  }
+
+  .check.done::after {
+    content: "";
+    width: 10px;
+    height: 6px;
+    border-left: 2px solid white;
+    border-bottom: 2px solid white;
+    transform: rotate(-45deg) translate(1px, -1px);
+  }
+
+  .text {
+    flex: 1;
+    font-size: 16px;
+    line-height: 1.4;
+    word-break: break-word;
+  }
+
+  .text.done {
+    color: var(--done);
+    text-decoration: line-through;
+  }
+
+  .remove {
+    border: none;
+    background: none;
+    color: var(--muted);
+    font-size: 20px;
+    line-height: 1;
+    padding: 4px 6px;
+    cursor: pointer;
+  }
+
+  .empty {
+    text-align: center;
+    color: var(--muted);
+    padding: 60px 24px;
+    font-size: 15px;
+  }
+
+  footer {
+    padding: 14px 24px 24px;
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <h1>Today</h1>
+    <p id="subtitle">Nothing on your list yet</p>
+  </header>
+
+  <form id="addForm">
+    <input type="text" id="taskInput" placeholder="Add a task" autocomplete="off">
+    <button type="submit" class="add">Add</button>
+  </form>
+
+  <ul id="list"></ul>
+
+  <footer>Your first app — built with HTML, CSS &amp; JavaScript</footer>
+</div>
+
+<script>
+  // The list of tasks lives right here in memory.
+  // STORAGE_KEY is used to remember tasks on this phone between visits.
+  const STORAGE_KEY = "simple-todo-tasks";
+
+  function loadTasks() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveTasks(tasks) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+  }
+
+  let tasks = loadTasks();
+
+  const listEl = document.getElementById("list");
+  const formEl = document.getElementById("addForm");
+  const inputEl = document.getElementById("taskInput");
+  const subtitleEl = document.getElementById("subtitle");
+
+  function render() {
+    listEl.innerHTML = "";
+
+    if (tasks.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "empty";
+      empty.textContent = "Nothing on your list yet — add something above.";
+      listEl.appendChild(empty);
+    }
+
+    tasks.forEach((task, index) => {
+      const li = document.createElement("li");
+
+      const check = document.createElement("button");
+      check.className = "check" + (task.done ? " done" : "");
+      check.setAttribute("aria-label", "Mark done");
+      check.onclick = () => {
+        tasks[index].done = !tasks[index].done;
+        saveTasks(tasks);
+        render();
+      };
+
+      const text = document.createElement("div");
+      text.className = "text" + (task.done ? " done" : "");
+      text.textContent = task.label;
+
+      const remove = document.createElement("button");
+      remove.className = "remove";
+      remove.textContent = "×";
+      remove.setAttribute("aria-label", "Delete task");
+      remove.onclick = () => {
+        tasks.splice(index, 1);
+        saveTasks(tasks);
+        render();
+      };
+
+      li.appendChild(check);
+      li.appendChild(text);
+      li.appendChild(remove);
+      listEl.appendChild(li);
+    });
+
+    const remaining = tasks.filter(t => !t.done).length;
+    if (tasks.length === 0) {
+      subtitleEl.textContent = "Nothing on your list yet";
+    } else if (remaining === 0) {
+      subtitleEl.textContent = "All done — nice work";
+    } else {
+      subtitleEl.textContent = remaining + (remaining === 1 ? " task left" : " tasks left");
+    }
+  }
+
+  formEl.addEventListener("submit", function (e) {
+    e.preventDefault();
+    const label = inputEl.value.trim();
+    if (!label) return;
+    tasks.push({ label: label, done: false });
+    saveTasks(tasks);
+    inputEl.value = "";
+    render();
+  });
+
+  render();
+</script>
+
+</body>
+</html>
